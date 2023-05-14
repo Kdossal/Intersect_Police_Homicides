@@ -1,0 +1,198 @@
+---
+title: "Regression Analysis Project"
+author: "Kameel Dossal"
+date: "3/5/2022"
+output: pdf_document
+---
+
+```{r}
+library(readr)
+
+police_killings <- read_csv("C:/Classes/PHP 1511/police_killings.csv", 
+                            col_types = cols(age = col_number(), 
+                                             raceethnicity = col_factor(levels = c("White", "Hispanic/Latino", "Black", "Other")), 
+                                             pop = col_number(), personal_income = col_number(),
+                                             household_income = col_number(), pov_rate = col_number(), un_rate = col_number(),
+                                             college = col_number()))
+
+```
+
+```{r}
+library(tidyverse)
+police_killings <- filter(police_killings, raceethnicity != 'Other')
+police_killings$college <- police_killings$college*100
+
+```
+
+
+```{r}
+library(scales)
+library(olsrr)
+library(table1)
+library(stargazer)
+
+#pk <- police_killings
+# Use chunk to reiterate until all outliers are eliminated
+pk <- filter(pk, (cooks.distance(pk_model) < .0105))
+                    
+
+pk_model <- lm(data = pk, household_income ~ raceethnicity + county_income + college + pop)
+summary(pk_model)
+
+ols_plot_cooksd_chart(pk_model)
+
+# table1(~ household_income + county_income + college + pop | raceethnicity, data = pk)
+# stargazer(pk_model, ci = T)
+
+```
+
+```{r}
+library(tidyverse)
+library(scales)
+
+# Create Data Frame for race and income averages
+race_income = data.frame(Group = c('US', "US", "US", "Murdered", "Murdered", "Murdered"),
+                        Race = c('White', "Hispanic/Latino", "Black", 'White', "Hispanic/Latino", "Black"),
+                        Income = c(c(62950, 45148, 36898), c(mean(pk$personal_income[pk$raceethnicity == 'White']), mean(pk$personal_income[pk$raceethnicity == 'Hispanic/Latino']), mean(pk$personal_income[pk$raceethnicity == 'Black']))))
+
+race_income$Group = factor(factor(race_income$Group, levels = c("US", "Murdered"), labels = c("US", "Murdered")))
+race_income$Race = factor(factor(race_income$Race, levels = 
+                                   c("White", "Hispanic/Latino", "Black"), labels = c("White", "Hispanic/Latino", "Black")))
+
+
+# Bar chart of race and income averages 
+ggplot(race_income, aes(x=Race, y=Income, fill=Group)) + geom_bar(stat="identity", color="black", position=position_dodge()) + 
+  labs(title = "Race/Ethnicity and Income", x= "Race/Ethnicity", y = "Average Income") + theme_minimal() +
+  scale_fill_brewer(palette="Blues") + scale_y_continuous(labels = label_number(scale = 1e-3, prefix = "$", suffix = "k", accuracy = 1)) +
+  theme(plot.title = element_text(size=16, face="bold", vjust=4, hjust=.5, lineheight=0.6), 
+                   axis.title.x = element_text(size=12,face="bold", vjust=-3),
+                   axis.title.y = element_text(size=12,face="bold", vjust=7), plot.margin = margin(20, 15, 20, 25))
+
+
+```
+
+
+
+```{r}
+
+white <- filter(pk, raceethnicity == "White")
+black <- filter(pk, raceethnicity == "Black")
+hisp  <- filter(pk, raceethnicity == "Hispanic/Latino")
+
+
+fit_white <- lm(household_income ~ county_income, data = white)
+fit_black <- lm(household_income ~ county_income, data = black)
+fit_hisp <- lm(household_income ~ county_income, data = hisp)
+
+predicted_white <- data.frame(pred_white = predict(fit_white, pk), county_inc = pk$county_income)
+predicted_black <- data.frame(pred_black = predict(fit_black, pk), county_inc = pk$county_income)
+predicted_hisp <- data.frame(pred_hisp = predict(fit_hisp, pk), county_inc = pk$county_income)
+
+
+p = ggplot(pk, aes(x = county_income, y = household_income, color = raceethnicity)) + geom_point(size = 2.5, shape = 20) + 
+  labs(title = "County vs Tract Household Income", x= "County Income", y = "Tract Household Income") +  
+  scale_x_continuous(labels = label_number(scale = 1e-3, prefix = "$", suffix = "k", accuracy = 1)) + 
+  scale_y_continuous(labels = label_number(scale = 1e-3, prefix = "$", suffix = "k", accuracy = 1)) + 
+  scale_color_manual(name = "Race/Ethnicity",
+                    values = c("White" = "cornflowerblue", "Black" = "orchid", "Hispanic/Latino" = "black")) 
+
+pretty = p + theme(plot.title = element_text(size=16, face="bold", vjust=4, hjust=.5, lineheight=0.6), 
+                   axis.title.x = element_text(size=12,face="bold", vjust=-3),
+                   axis.title.y = element_text(size=12,face="bold", vjust=7))
+
+
+pretty + geom_line(data = predicted_white, aes(x=county_inc, y=pred_white, color = "White")) +
+  geom_line(data = predicted_black, aes(x=county_inc, y=pred_black, color = "Black")) +
+  geom_line(data = predicted_hisp, aes(x=county_inc, y=pred_hisp, color = "Hispanic/Latino")) +
+  theme(legend.title = element_text(face='bold'), plot.margin = margin(20, 15, 20, 25))
+
+
+```
+
+
+```{r}
+fit_white <- lm(household_income ~ college, data = white)
+fit_black <- lm(household_income ~ college, data = black)
+fit_hisp <- lm(household_income ~ college, data = hisp)
+
+predicted_white1 <- data.frame(pred_white = predict(fit_white, pk), college_rate = pk$college)
+predicted_black1 <- data.frame(pred_black = predict(fit_black, pk), college_rate = pk$college)
+predicted_hisp1 <- data.frame(pred_hisp = predict(fit_hisp, pk), college_rate = pk$college)
+
+
+
+p1 = ggplot(pk, aes(x = college, y = household_income, color = raceethnicity)) + geom_point(size = 2.5, shape = 20) + 
+  labs(title = "College Rates vs Tract Household Income", x= "College Rates", y = "Tract Household Income") +  
+  scale_x_continuous(labels = label_number(scale = 1, suffix = "%", accuracy = 1)) + 
+  scale_y_continuous(labels = label_number(scale = 1e-3, prefix = "$", suffix = "k", accuracy = 1)) +
+  scale_color_manual(name = "Race/Ethnicity",
+                    values = c("White" = "cornflowerblue", "Black" = "orchid", "Hispanic/Latino" = "black"))
+
+p2 = p1 + theme(plot.title = element_text(size=16, face="bold", vjust=4, hjust=.5, lineheight=0.6), 
+                   axis.title.x = element_text(size=12,face="bold", vjust=-3),
+                   axis.title.y = element_text(size=12,face="bold", vjust=7), plot.margin = margin(20, 15, 20, 25), 
+           legend.title = element_text(face='bold')) 
+
+p2 + geom_line(data = predicted_white1, aes(x=college_rate, y=pred_white, color = "White")) +
+   geom_line(data = predicted_black1, aes(x=college_rate, y=pred_black, color = "Black")) +
+   geom_line(data = predicted_hisp1, aes(x=college_rate, y=pred_hisp, color = "Hispanic/Latino"))
+
+```
+
+```{r}
+fit_white <- lm(household_income ~ pop, data = white)
+fit_black <- lm(household_income ~ pop, data = black)
+fit_hisp <- lm(household_income ~ pop, data = hisp)
+
+predicted_white1 <- data.frame(pred_white = predict(fit_white, pk), pop = pk$pop)
+predicted_black1 <- data.frame(pred_black = predict(fit_black, pk), pop = pk$pop)
+predicted_hisp1 <- data.frame(pred_hisp = predict(fit_hisp, pk), pop = pk$pop)
+
+
+p1 = ggplot(pk, aes(x = pop, y = household_income, color = raceethnicity)) + geom_point(size = 2.5, shape = 20) + 
+  labs(title = "Household Income vs Tract Population", x= "Tract Population", y = "Household Income") + 
+  scale_y_continuous(labels = label_number(scale = 1e-3, prefix = "$", suffix = "k", accuracy = 1)) +
+  scale_color_manual(name = "Race/Ethnicity",
+                    values = c("White" = "grey", "Black" = "black", "Hispanic/Latino" = "saddlebrown"))
+
+p2 = p1 + theme(plot.title = element_text(size=16, face="bold", vjust=4, hjust=.5, lineheight=0.6), 
+                   axis.title.x = element_text(size=12,face="bold", vjust=-3),
+                   axis.title.y = element_text(size=12,face="bold", vjust=7), plot.margin = margin(20, 15, 20, 25), 
+           legend.title = element_text(face='bold')) 
+
+p2 + geom_line(data = predicted_white1, aes(x=pop, y=pred_white, color = "White")) +
+  geom_line(data = predicted_black1, aes(x=pop, y=pred_black, color = "Black")) +
+  geom_line(data = predicted_hisp1, aes(x=pop, y=pred_hisp, color = "Hispanic/Latino"))
+
+```
+
+```{r}
+
+p1 = ggplot(pk, aes(x = pov_rate, y = household_income, color = raceethnicity)) + geom_point(size = 2.5, shape = 20) + 
+  labs(title = "Poverty Rate vs Household Income", x= "Poverty Rate", y = "Household Income") +  
+  scale_x_continuous(labels = label_number(scale = 1, suffix = "%", accuracy = 1)) + 
+  scale_y_continuous(labels = label_number(scale = 1e-3, prefix = "$", suffix = "k", accuracy = 1)) +
+  scale_color_manual(name = "Race/Ethnicity",
+                    values = c("White" = "grey", "Black" = "black", "Hispanic/Latino" = "saddlebrown"))
+
+p1 + theme(plot.title = element_text(size=16, face="bold", vjust=4, hjust=.5, lineheight=0.6), 
+                   axis.title.x = element_text(size=12,face="bold", vjust=-3),
+                   axis.title.y = element_text(size=12,face="bold", vjust=7), plot.margin = margin(20, 15, 20, 25), 
+           legend.title = element_text(face='bold')) 
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
