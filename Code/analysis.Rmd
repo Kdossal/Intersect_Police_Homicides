@@ -7,8 +7,10 @@ output: pdf_document
 
 ```{r}
 library(readr)
+```
 
-police_killings <- read_csv("C:/Classes/PHP 1511/police_killings.csv", 
+```{r}
+police_killings <- read_csv("Data/police_killings.csv", 
                             col_types = cols(age = col_number(), 
                                              raceethnicity = col_factor(levels = c("White", "Hispanic/Latino", "Black", "Other")), 
                                              pop = col_number(), personal_income = col_number(),
@@ -181,10 +183,6 @@ p1 + theme(plot.title = element_text(size=16, face="bold", vjust=4, hjust=.5, li
            legend.title = element_text(face='bold')) 
 
 ```
-
-
-
-
 
 
 
