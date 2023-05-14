@@ -12,5 +12,7 @@ The report analyzes the relationship between individuals’ race/ethnicity and t
 
 ## **Repository Contents**
 `report.pdf:` The full report, detailing the analysis and findings
+
 `police_killings.csv:` The cleaned and processed data set used in the analysis
+
 `analysis.Rmd:` The Rmarkdown file containing the code used to analyze the data
